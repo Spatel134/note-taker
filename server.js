@@ -5,28 +5,95 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 
-
 // EXPRESS CONFIGURATION
 
 var app = express();
 
-// Sets an initial port. 
+// Sets an initial port.
 var PORT = process.env.PORT || 8080;
 
 // Sets up the Express app to handle data parsing
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.static(__dirname + "/public"));
 
 // ROUTER
 // The below points our server to a series of "route" files.
-// These routes give our server a "map" of how to respond when users visit or request data from various URLs.
+app.get("/api/notes", function (req, res) {
+  res.sendFile(path.join(__dirname, "/db/db.json"));
+});
 
-require("./routes/apiRoutes")(app);
-require("./routes/htmlRoutes")(app);
+// Post Route
+app.post("/api/notes", function (req, res) {
+  
+  let savedNotes = [];
 
-// LISTENER
-// The below code effectively "starts" our server
+  fs.readFile("./db/db.json", "utf8", (err, data) => {
+    if (err) throw err;
 
-app.listen(PORT, function() {
+    const noteData = JSON.parse(data);
+
+    for (let i = 0; i < noteData.length; i++) {
+      const note = {
+        title: noteData[i].title,
+        text: noteData[i].text,
+        id: i,
+      };
+
+      savedNotes.push(note);
+    }
+
+    const newNote = {
+      title: req.body.title,
+      text: req.body.text,
+      id: savedNotes.length,
+    };
+
+    savedNotes.push(newNote);
+
+    savedNotes = JSON.stringify(savedNotes);
+
+    fs.writeFile("./db/db.json", savedNotes, (err) => {
+      if (err) throw err;
+      console.log("File saved successfully.");
+    });
+
+    res.send("Note added successfully.");
+  });
+});
+
+// Delete Route
+app.delete("/api/notes/:id", function (req, res) {
+  const noteID = req.params.id;
+
+  fs.readFile("./db/db.json", "utf8", (err, data) => {
+    if (err) throw err;
+
+    const noteData = JSON.parse(data);
+
+    noteData.splice(noteID, 1);
+
+    updatedData = JSON.stringify(noteData);
+
+    // Write data back to stored db.json
+    fs.writeFile("./db/db.json", updatedData, (err) => {
+      if (err) throw err;
+    });
+
+    res.send("Note deleted successfully.");
+  });
+});
+
+// HTML Routes
+
+app.get("/notes", function (req, res) {
+  res.sendFile(path.join(__dirname, "./public/notes.html"));
+});
+
+app.get("*", function (req, res) {
+  res.sendFile(path.join(__dirname, "./public/index.html"));
+});
+
+app.listen(PORT, function () {
   console.log("App listening on PORT: " + PORT);
 });
