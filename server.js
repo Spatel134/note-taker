@@ -25,7 +25,6 @@ app.get("/api/notes", function (req, res) {
 
 // Post Route
 app.post("/api/notes", function (req, res) {
-  
   let savedNotes = [];
 
   fs.readFile("./db/db.json", "utf8", (err, data) => {
@@ -70,8 +69,12 @@ app.delete("/api/notes/:id", function (req, res) {
     if (err) throw err;
 
     const noteData = JSON.parse(data);
-
-    noteData.splice(noteID, 1);
+    for (let i = 0; i < noteData.length; i++) {
+      if (noteData[i].id === parseInt(noteID)) {
+        noteData.splice(i, 1);
+        break;
+      }
+    }
 
     updatedData = JSON.stringify(noteData);
 
